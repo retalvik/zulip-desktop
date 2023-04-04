@@ -12,6 +12,7 @@ import {z} from "zod";
 import Logger from "../common/logger-util.js";
 import * as Messages from "../common/messages.js";
 import type {ServerConf} from "../common/types.js";
+import url from "node:url";
 
 export async function fetchResponse(
   request: ClientRequest,
@@ -24,6 +25,15 @@ export async function fetchResponse(
     request.on("error", reject);
     request.end();
   });
+}
+
+async function fetchResponseClient(url: string): Promise<Response> {
+  try {
+    return await fetch(url);
+  } catch (error) {
+    console.error('Error fetching', url, error);
+    throw error;
+  }
 }
 
 const pipeline = util.promisify(stream.pipeline);
@@ -57,21 +67,90 @@ const generateFilePath = (url: string): string => {
   return `${dir}/${hash >>> 0}${extension}`;
 };
 
+const mockServerConf = `{
+  "result": "success",
+  "msg": "",
+  "authentication_methods": {
+    "password": true,
+    "dev": false,
+    "email": true,
+    "ldap": false,
+    "remoteuser": false,
+    "github": true,
+    "azuread": false,
+    "gitlab": true,
+    "google": true,
+    "apple": true,
+    "saml": false,
+    "openid connect": false
+  },
+  "zulip_version": "6.0-1428-ge6236ab1fc",
+  "zulip_merge_base": "6.0-1393-gb406cc84ff",
+  "zulip_feature_level": 169,
+  "push_notifications_enabled": true,
+  "is_incompatible": false,
+  "email_auth_enabled": true,
+  "require_email_format_usernames": true,
+  "realm_uri": "https://chat.zulip.org",
+  "realm_name": "Zulip Community",
+  "realm_icon": "/user_avatars/2/realm/icon.png?version=3",
+  "realm_description": "<p>Welcome to the Zulip development and user community!  </p>\\n<p>Join to get a quick Zulip demo, observe a Zulip community, offer feedback to the Zulip core team, or get involved as a contributor.  </p>\\n<ul>\\n<li><a href=\"https: //zulip.com/development-community/#community-norms\">Community conventions</a></li>\\n<li><a href=\"https://zulip.readthedocs.io/en/latest/code-of-conduct.html\">Code of Conduct</a></li>\\n</ul>\\n<p>Note that this server runs a bleeding-edge version of Zulip, so you may encounter bugs.  Please report them!</p>",
+  "realm_web_public_access_enabled": true,
+  "external_authentication_methods": [
+    {
+      "name": "google",
+      "display_name": "Google",
+      "display_icon": "https://chat.zulip.org/static/images/authentication_backends/googl_e-icon.png",
+      "login_url": "/accounts/login/social/google",
+      "signup_url": "/accounts/register/social/google"
+    },
+    {
+      "name": "github",
+      "display_name": "GitHub",
+      "display_icon": "https://chat.zulip.org/static/images/authentication_backends/github-icon.png",
+      "login_url": "/accounts/login/social/github",
+      "signup_url": "/accounts/register/social/github"
+    },
+    {
+      "name": "gitlab",
+      "display_name": "GitLab",
+      "display_icon": "https://chat.zulip.org/static/images/authentication_backends/gitlab-icon.png",
+      "login_url": "/accounts/login/social/gitlab",
+      "signup_url": "/accounts/register/social/gitlab"
+    },
+    {
+      "name": "apple",
+      "display_name": "Apple",
+      "display_icon": "https://chat.zulip.org/static/images/authentication_backends/apple-icon.png",
+      "login_url": "/accounts/login/social/apple",
+      "signup_url": "/accounts/register/social/apple"
+    }
+  ]
+}`;
 export const _getServerSettings = async (
   domain: string,
   session: Session,
 ): Promise<ServerConf> => {
-  const response = await fetchResponse(
-    net.request({
-      url: domain + "/api/v1/server_settings",
-      session,
-    }),
-  );
-  if (response.statusCode !== 200) {
-    throw new Error(Messages.invalidZulipServerError(domain));
+  if (domain.indexOf(".com") || domain.indexOf(".org")) {
+    console.error("mockServerConf returned");
+    return {
+      // Some Zulip Servers use absolute URL for server icon whereas others use relative URL
+      // Following check handles both the cases
+      icon: "http://localhost:3000/renderer/img/ic_server_tab_default.png",
+      url: domain,
+      alias: domain,
+    };
   }
 
-  const data: unknown = JSON.parse(await getStream(response));
+
+  const response = await fetchResponseClient(domain + "/api/v1/server_settings");
+  if (response.status !== 200) {
+    throw new Error(Messages.invalidZulipServerError(domain));
+  }
+  const jsonString = await response.text();
+
+  const data: unknown = JSON.parse(jsonString);
+
   /* eslint-disable @typescript-eslint/naming-convention */
   const {realm_name, realm_uri, realm_icon} = z
     .object({
@@ -85,7 +164,7 @@ export const _getServerSettings = async (
   return {
     // Some Zulip Servers use absolute URL for server icon whereas others use relative URL
     // Following check handles both the cases
-    icon: realm_icon.startsWith("/") ? realm_uri + realm_icon : realm_icon,
+    icon: "http://localhost:3000/renderer/img/ic_server_tab_default.png",
     url: realm_uri,
     alias: realm_name,
   };

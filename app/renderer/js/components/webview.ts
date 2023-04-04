@@ -35,25 +35,32 @@ type WebViewProps = {
 };
 
 export default class WebView {
+  static first : boolean = true;
   static templateHtml(props: WebViewProps): Html {
     return html`
-      <webview
-        data-tab-id="${props.tabIndex}"
-        src="${props.url}"
-        ${props.preload === undefined
-          ? html``
-          : html`preload="${props.preload}"`}
-        partition="persist:webviewsession"
-        allowpopups
-      >
-      </webview>
+      <h1>iFrame disabled using 'tauri child window': ${props.url}</h1>
     `;
+    // <iframe src="${props.url}" title="description" style="width: 100%" ${this.first ? "" : "hidden"}></iframe>
+
+    //
+    //      <webview
+    //         data-tab-id="${props.tabIndex}"
+    //         src="${props.url}"
+    //         ${props.preload === undefined
+    //           ? html``
+    //           : html`preload="${props.preload}"`}
+    //         partition="persist:webviewsession"
+    //         allowpopups
+    //       >
+    //       </webview>
   }
 
   static async create(props: WebViewProps): Promise<WebView> {
+    console.error("WebView.create() called", props);
     const $element = generateNodeFromHtml(
       WebView.templateHtml(props),
     ) as HTMLElement;
+    // TODO retalvik: This is a hack to get the webview
     props.$root.append($element);
 
     await new Promise<void>((resolve) => {
@@ -196,6 +203,7 @@ export default class WebView {
   }
 
   show(): void {
+    console.error("WebView.show() called");
     // Do not show WebView if another tab was selected and this tab should be in background.
     if (!this.props.isActive()) {
       return;

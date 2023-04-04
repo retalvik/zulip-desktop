@@ -8,7 +8,7 @@ import path from "node:path";
 import process from "node:process";
 
 import * as remoteMain from "@electron/remote/main";
-import windowStateKeeper from "electron-window-state";
+import windowStateKeeper, { WindowState } from "electron-window-state";
 
 import * as ConfigUtil from "../common/config-util.js";
 import {bundlePath, bundleUrl, publicPath} from "../common/paths.js";
@@ -30,9 +30,10 @@ import "gatemaker/electron-setup"; // eslint-disable-line import/no-unassigned-i
 const {GDK_BACKEND} = process.env;
 
 // Initialize sentry for main process
-sentryInit();
+// TODO retalvik: disabled to avoid sends to sentry
+// sentryInit();
 
-let mainWindowState: windowStateKeeper.State;
+let mainWindowState: WindowState;
 
 // Prevent window being garbage collected
 let mainWindow: BrowserWindow;
@@ -94,7 +95,7 @@ function createMainWindow(): BrowserWindow {
   (async () => win.loadURL(mainUrl))();
 
   // Keep the app running in background on close event
-  win.on("close", (event) => {
+  win.on("close", (event :Event) => {
     if (ConfigUtil.getConfigItem("quitOnClose", false)) {
       app.quit();
     }
@@ -110,7 +111,7 @@ function createMainWindow(): BrowserWindow {
     }
   });
 
-  win.setTitle("Zulip");
+  win.setTitle("ruzlip");
 
   win.on("enter-full-screen", () => {
     send(win.webContents, "enter-fullscreen");
@@ -144,7 +145,7 @@ function createMainWindow(): BrowserWindow {
   await app.whenReady();
 
   if (process.env.GDK_BACKEND !== GDK_BACKEND) {
-    console.warn(
+    console.error(
       "Reverting GDK_BACKEND to work around https://github.com/electron/electron/issues/28436",
     );
     if (GDK_BACKEND === undefined) {
@@ -168,7 +169,6 @@ function createMainWindow(): BrowserWindow {
       mainWindow.show();
     }
   });
-
   ipcMain.on(
     "permission-callback",
     (event: Event, permissionCallbackId: number, grant: boolean) => {

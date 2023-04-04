@@ -7,6 +7,7 @@ import url from "node:url";
 import {Menu, app, dialog, session} from "@electron/remote";
 import * as remote from "@electron/remote";
 import * as Sentry from "@sentry/electron";
+import {invoke} from "@tauri-apps/api/tauri";
 
 import type {Config} from "../../common/config-util.js";
 import * as ConfigUtil from "../../common/config-util.js";
@@ -64,10 +65,14 @@ export class ServerManagerView {
   $webviewsContainer: Element;
   $backButton: HTMLButtonElement;
   $dndButton: HTMLButtonElement;
+  $browserbenchButton: HTMLButtonElement;
+  $html5testButton: HTMLButtonElement;
   $addServerTooltip: HTMLElement;
   $reloadTooltip: HTMLElement;
   $loadingTooltip: HTMLElement;
   $settingsTooltip: HTMLElement;
+  $browserbenchTooltip: HTMLElement;
+  $html5testTooltip: HTMLElement;
   $serverIconTooltip: HTMLCollectionOf<HTMLElement>;
   $backTooltip: HTMLElement;
   $dndTooltip: HTMLElement;
@@ -77,6 +82,8 @@ export class ServerManagerView {
   loading: Set<string>;
   activeTabIndex: number;
   tabs: ServerOrFunctionalTab[];
+  //TODO retalvik: not needed if tabs[].webview return
+  domains :string[];
   functionalTabs: Map<string, number>;
   tabIndex: number;
   presetOrgs: string[];
@@ -93,12 +100,16 @@ export class ServerManagerView {
     this.$webviewsContainer = document.querySelector("#webviews-container")!;
     this.$backButton = $actionsContainer.querySelector("#back-action")!;
     this.$dndButton = $actionsContainer.querySelector("#dnd-action")!;
+    this.$browserbenchButton = $actionsContainer.querySelector("#browserbench-action")!;
+    this.$html5testButton = $actionsContainer.querySelector("#html5test-action")!;
 
     this.$addServerTooltip = document.querySelector("#add-server-tooltip")!;
     this.$reloadTooltip = $actionsContainer.querySelector("#reload-tooltip")!;
     this.$loadingTooltip = $actionsContainer.querySelector("#loading-tooltip")!;
     this.$settingsTooltip =
       $actionsContainer.querySelector("#setting-tooltip")!;
+    this.$browserbenchTooltip = $actionsContainer.querySelector("#browserbench-tooltip")!;
+    this.$html5testTooltip = $actionsContainer.querySelector("#html5test-tooltip")!;
 
     // TODO: This should have been querySelector but the problem is that
     // querySelector doesn't return elements not present in dom whereas somehow
@@ -120,6 +131,7 @@ export class ServerManagerView {
     this.loading = new Set();
     this.activeTabIndex = -1;
     this.tabs = [];
+    this.domains = [];
     this.presetOrgs = [];
     this.functionalTabs = new Map();
     this.tabIndex = 0;
@@ -135,9 +147,10 @@ export class ServerManagerView {
       await this.initPresetOrgs();
     }
 
+    //TODO retalvik: disabled to limit scope of changes
     await this.initTabs();
     this.initActions();
-    this.registerIpcs();
+    //this.registerIpcs();
   }
 
   async loadProxy(): Promise<void> {
@@ -216,20 +229,21 @@ export class ServerManagerView {
       settingOptions.spellcheckerLanguages = ["en-US"];
     }
 
-    for (const [setting, value] of Object.entries(settingOptions) as Array<
-      {[Key in keyof Config]: [Key, Config[Key]]}[keyof Config]
-    >) {
-      // Give preference to defaults defined in global_config.json
-      if (EnterpriseUtil.configItemExists(setting)) {
-        ConfigUtil.setConfigItem(
-          setting,
-          EnterpriseUtil.getConfigItem(setting, value),
-          true,
-        );
-      } else if (!ConfigUtil.isConfigItemExists(setting)) {
-        ConfigUtil.setConfigItem(setting, value);
-      }
-    }
+    //TODO retalvik:
+    // for (const [setting, value] of Object.entries(settingOptions) as Array<
+    //   {[Key in keyof Config]: [Key, Config[Key]]}[keyof Config]
+    // >) {
+    //   // Give preference to defaults defined in global_config.json
+    //   if (EnterpriseUtil.configItemExists(setting)) {
+    //     ConfigUtil.setConfigItem(
+    //       setting,
+    //       EnterpriseUtil.getConfigItem(setting, value),
+    //       true,
+    //     );
+    //   } else if (!ConfigUtil.isConfigItemExists(setting)) {
+    //     ConfigUtil.setConfigItem(setting, value);
+    //   }
+    // }
   }
 
   initSidebar(): void {
@@ -337,7 +351,9 @@ export class ServerManagerView {
         servers[lastActiveTab].url,
         lastActiveTab,
       );
-      await this.activateTab(lastActiveTab);
+      //TODO retalvik: fix never returns
+      //await this.activateTab(lastActiveTab);
+
       await Promise.all(
         servers.map(async (server, i) => {
           // After the lastActiveTab is activated, we load the others in the background
@@ -348,7 +364,8 @@ export class ServerManagerView {
 
           await DomainUtil.updateSavedServer(server.url, i);
           const tab = this.tabs[i];
-          if (tab instanceof ServerTab) (await tab.webview).load();
+          //TODO retalvik: fix never returns
+          //if (tab instanceof ServerTab) (await tab.webview).load();
         }),
       );
       // Remove focus from the settings icon at sidebar bottom
@@ -362,7 +379,9 @@ export class ServerManagerView {
   }
 
   initServer(server: ServerConf, index: number): void {
+    console.error("initServer", server, index);
     const tabIndex = this.getTabIndex();
+    this.domains.push(server.url);
     this.tabs.push(
       new ServerTab({
         role: "server",
@@ -412,6 +431,8 @@ export class ServerManagerView {
   }
 
   initActions(): void {
+    console.error("###########################initActions");
+
     this.initDndButton();
     this.initServerActions();
     this.initLeftSidebarEvents();
@@ -433,7 +454,17 @@ export class ServerManagerView {
   }
 
   initLeftSidebarEvents(): void {
+    console.error("###########################initLeftSidebarEvents");
+    this.$browserbenchButton.addEventListener("click", async () => {
+      console.error("browserbenchButton clicked");
+      invoke("toggle_browserbench_window");
+    });
+    this.$html5testButton.addEventListener("click", async () => {
+      console.error("html5testButton clicked");
+      invoke("toggle_html5test_window");
+    });
     this.$dndButton.addEventListener("click", () => {
+      console.error("dndButton clicked");
       const dndUtil = DNDUtil.toggle();
       ipcRenderer.send(
         "forward-message",
@@ -463,6 +494,8 @@ export class ServerManagerView {
     this.sidebarHoverEvent(this.$reloadButton, this.$reloadTooltip);
     this.sidebarHoverEvent(this.$backButton, this.$backTooltip);
     this.sidebarHoverEvent(this.$dndButton, this.$dndTooltip);
+    this.sidebarHoverEvent(this.$browserbenchButton, this.$browserbenchTooltip);
+    this.sidebarHoverEvent(this.$html5testButton, this.$html5testTooltip);
   }
 
   initDndButton(): void {
@@ -553,6 +586,7 @@ export class ServerManagerView {
     makeView: () => Promise<Element>;
     destroyView: () => void;
   }): Promise<void> {
+    console.error("openFunctionalTab", tabProps);
     if (this.functionalTabs.has(tabProps.name)) {
       await this.activateTab(this.functionalTabs.get(tabProps.name)!);
       return;
@@ -635,6 +669,7 @@ export class ServerManagerView {
   }
 
   async activateLastTab(index: number): Promise<void> {
+    console.error("main.ts activateLastTab()", index, this.tabs);
     // Open all the tabs in background, also activate the tab based on the index
     await this.activateTab(index);
     // Save last active tab via main process to avoid JSON DB errors
@@ -654,6 +689,7 @@ export class ServerManagerView {
   }
 
   async activateTab(index: number, hideOldTab = true): Promise<void> {
+    console.error("main.ts activateTab()", index, hideOldTab, this.tabs);
     const tab = this.tabs[index];
     if (!tab) {
       return;
@@ -676,24 +712,31 @@ export class ServerManagerView {
         await this.tabs[this.activeTabIndex].deactivate();
       }
     }
-
+    console.error("!!!!!!!!!!!tab instanceof ServerTab");
     if (tab instanceof ServerTab) {
-      try {
-        (await tab.webview).canGoBackButton();
-      } catch {}
+      // try {
+      //   console.error("tab instanceof ServerTab");
+      //   (await tab.webview).canGoBackButton();
+      // } catch (error) {
+      //   console.error("tab instanceof ServerTab", error);
+      // }
     } else {
       document
         .querySelector("#actions-container #back-action")!
         .classList.add("disable");
     }
+    console.error("!!!!!!!!!!!!!!!!!! await tab.activate();");
 
-    this.activeTabIndex = index;
-    await tab.activate();
+    console.error("tab.activate()");
+    // this.activeTabIndex = index;
+    // await tab.activate();
+    console.error("!!!!!!!!!!!!!!!!!! await tab.activate();2");
 
-    this.showLoading(
-      tab instanceof ServerTab &&
-        this.loading.has((await tab.webview).props.url),
-    );
+
+    // this.showLoading(
+    //   tab instanceof ServerTab &&
+    //     this.loading.has((await tab.webview).props.url),
+    // );
 
     ipcRenderer.send("update-menu", {
       // JSON stringify this.tabs to avoid a crash
@@ -703,6 +746,12 @@ export class ServerManagerView {
       // Following flag controls whether a menu item should be enabled or not
       enableMenu: tab.props.role === "server",
     });
+    //TODO retalvik: either use <iframe> or use child window
+    // load_on_main_view(handle: tauri::AppHandle, url: String)
+    if (tab instanceof ServerTab) {
+      console.error("!!!!!!!!!!!!!!!!!! load_on_main_view");
+      await invoke("toogle_domain_on_main_view", { url: this.domains[index] });
+    }
   }
 
   showLoading(loading: boolean): void {
@@ -823,6 +872,7 @@ export class ServerManagerView {
           label: "Notification settings",
           enabled: await this.isLoggedIn(index),
           click: async () => {
+            console.error("clicck activatetab", index);
             // Switch to tab whose icon was right-clicked
             await this.activateTab(index);
             const tab = this.tabs[index];
@@ -1189,4 +1239,5 @@ export class ServerManagerView {
 window.addEventListener("load", async () => {
   const serverManagerView = new ServerManagerView();
   await serverManagerView.init();
+  console.error("ServerManagerView initialized");
 });

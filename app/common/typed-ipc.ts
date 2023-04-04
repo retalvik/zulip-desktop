@@ -24,6 +24,7 @@ export type MainMessage = {
   "update-badge": (messageCount: number) => void;
   "update-menu": (props: MenuProps) => void;
   "update-taskbar-icon": (data: string, text: string) => void;
+  "forward-message": (message: string) => void;
 };
 
 export type MainCall = {

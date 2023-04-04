@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import {app, dialog} from "@electron/remote";
+import {app, dialog, Session} from "@electron/remote";
 import * as Sentry from "@sentry/electron";
 import {JsonDB} from "node-json-db";
 import {DataError} from "node-json-db/dist/lib/Errors";
@@ -12,6 +12,7 @@ import Logger from "../../../common/logger-util.js";
 import * as Messages from "../../../common/messages.js";
 import type {ServerConf} from "../../../common/types.js";
 import {ipcRenderer} from "../typed-ipc-renderer.js";
+import {_getServerSettings} from "../../../main/request";
 
 const logger = new Logger({
   file: "domain-util.log",
@@ -62,6 +63,7 @@ export function getDomain(index: number): ServerConf {
 
 export function updateDomain(index: number, server: ServerConf): void {
   reloadDb();
+  console.error("updateDomain", index, server);
   serverConfSchema.parse(server);
   db.push(`/domains[${index}]`, server, true);
 }
@@ -125,11 +127,13 @@ export async function checkDomain(
 }
 
 async function getServerSettings(domain: string): Promise<ServerConf> {
-  return ipcRenderer.invoke("get-server-settings", domain);
+  console.log("getServerSettings", domain);
+  return _getServerSettings(domain, new Session());
 }
 
 export async function saveServerIcon(iconURL: string): Promise<string> {
-  return ipcRenderer.invoke("save-server-icon", iconURL);
+  console.log("saveServerIcon", iconURL);
+  return Promise.any("http://localhost:3000/renderer/img/ic_server_tab_default.png");
 }
 
 export async function updateSavedServer(

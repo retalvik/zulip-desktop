@@ -27,7 +27,13 @@ export default class Logger {
 
     // Trim log according to type of process
     if (process.type === "renderer") {
-      requestIdleCallback(async () => this.trimLog(file));
+      // webkit doesn't support requestIdleCallback
+      // @ts-ignore
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(async () => this.trimLog(file));
+      } else {
+        setTimeout(async () => this.trimLog(file), 1000);
+      }
     } else {
       process.nextTick(async () => this.trimLog(file));
     }
@@ -41,6 +47,7 @@ export default class Logger {
   _log(type: Level, ...args: unknown[]): void {
     args.unshift(this.getTimestamp() + " |\t");
     args.unshift(type.toUpperCase() + " |");
+    console.log(...args);
     this.nodeConsole[type](...args);
     console[type](...args);
   }

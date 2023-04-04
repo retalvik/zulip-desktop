@@ -1,8 +1,3 @@
-import type {IpcRendererEvent} from "electron/renderer";
-import {
-  ipcRenderer as untypedIpcRenderer, // eslint-disable-line no-restricted-imports
-} from "electron/renderer";
-
 import type {
   MainCall,
   MainMessage,
@@ -11,58 +6,62 @@ import type {
 
 type RendererListener<Channel extends keyof RendererMessage> =
   RendererMessage[Channel] extends (...args: infer Args) => void
-    ? (event: IpcRendererEvent, ...args: Args) => void
+    ? (event: Event, ...args: Args) => void
     : never;
 
-export const ipcRenderer: {
-  on<Channel extends keyof RendererMessage>(
-    channel: Channel,
-    listener: RendererListener<Channel>,
-  ): void;
-  once<Channel extends keyof RendererMessage>(
-    channel: Channel,
-    listener: RendererListener<Channel>,
-  ): void;
-  off<Channel extends keyof RendererMessage>(
-    channel: Channel,
-    listener: RendererListener<Channel>,
-  ): void;
-  removeListener<Channel extends keyof RendererMessage>(
-    channel: Channel,
-    listener: RendererListener<Channel>,
-  ): void;
-  removeAllListeners(channel: keyof RendererMessage): void;
-  send<Channel extends keyof RendererMessage>(
-    channel: "forward-message",
-    rendererChannel: Channel,
-    ...args: Parameters<RendererMessage[Channel]>
-  ): void;
-  send<Channel extends keyof MainMessage>(
-    channel: Channel,
-    ...args: Parameters<MainMessage[Channel]>
-  ): void;
+class IpcRender {
   invoke<Channel extends keyof MainCall>(
     channel: Channel,
     ...args: Parameters<MainCall[Channel]>
-  ): Promise<ReturnType<MainCall[Channel]>>;
-  sendSync<Channel extends keyof MainMessage>(
+  ): ReturnType<MainCall[Channel]> {
+    console.error("IpcRender.invoke() Not implemented", channel.toString(), ...args);
+    throw new Error("IpcRender.invoke() Not implemented" + channel.toString());
+  }
+
+  send<Channel extends keyof MainMessage>(
     channel: Channel,
-    ...args: Parameters<MainMessage[Channel]>
-  ): ReturnType<MainMessage[Channel]>;
-  postMessage<Channel extends keyof MainMessage>(
+    ...args: any
+  ): void {
+    console.error("IpcRender.send() Not implemented", channel.toString(), ...args);
+  }
+
+  on<Channel extends keyof RendererMessage>(
     channel: Channel,
-    message: Parameters<MainMessage[Channel]> extends [infer Message]
-      ? Message
-      : never,
-    transfer?: MessagePort[],
-  ): void;
-  sendTo<Channel extends keyof RendererMessage>(
-    webContentsId: number,
+    listener: RendererListener<Channel>,
+  ): void {
+
+    console.error("IpcRender.on() Not implemented", channel.toString());
+  }
+
+  removeListener<Channel extends keyof RendererMessage>(
     channel: Channel,
-    ...args: Parameters<RendererMessage[Channel]>
-  ): void;
-  sendToHost<Channel extends keyof RendererMessage>(
+    listener: RendererListener<Channel>,
+  ): void {
+    console.error("IpcRender.removeListener() Not implemented", channel.toString(), listener);
+  }
+
+  removeAllListeners<Channel extends keyof RendererMessage>(
     channel: Channel,
-    ...args: Parameters<RendererMessage[Channel]>
-  ): void;
-} = untypedIpcRenderer;
+  ): void {
+    console.error("IpcRender.removeAllListeners() Not implemented", channel.toString());
+  }
+  //TS2345: Argument of type '(_event: Event, state: boolean) => void' is not assignable to parameter of type '(elementName: string, state?: boolean | undefined) => void'.
+
+  off<Channel extends keyof RendererMessage>(toggleSidebar: string, handleToggle:
+    ((elementName: string, state?: boolean) => void) |
+    ((_event: Event, state: boolean) => void) |
+    ((_event: Event, _state: boolean, newSettings: any) => void))
+  {
+    console.error("IpcRender.off() Not implemented", toggleSidebar, handleToggle);
+  }
+
+  sendSync(param: string): any {
+    console.error("IpcRender.sendSync() Not implemented", param);
+    return { };
+  }
+
+  sendTo<Channel extends keyof RendererMessage>(id: number, channel: Channel, ...param3: any) {
+    console.error("IpcRender.sendTo() Not implemented", id, channel, param3);
+  }
+}
+export const ipcRenderer = new IpcRender();

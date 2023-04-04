@@ -328,7 +328,9 @@ webview.focus {
 #dnd-tooltip,
 #back-tooltip,
 #reload-tooltip,
-#setting-tooltip {
+#setting-tooltip,
+#browserbench-tooltip,
+#html5test-tooltip {
   font-family: sans-serif;
   background: rgb(34 44 49 / 100%);
   margin-left: 48px;
@@ -347,7 +349,9 @@ webview.focus {
 #dnd-tooltip::after,
 #back-tooltip::after,
 #reload-tooltip::after,
-#setting-tooltip::after {
+#setting-tooltip::after,
+#browserbench-tooltip::after,
+#html5test-tooltip::after {
   content: " ";
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
@@ -355,6 +359,16 @@ webview.focus {
   position: absolute;
   top: 7px;
   right: 68px;
+}
+
+#browserbench-tooltip,
+#html5test-tooltip {
+  width: 150px;
+}
+
+#browserbench-tooltip::after,
+#html5test-tooltip::after {
+  right: 163px;
 }
 
 #add-server-tooltip,

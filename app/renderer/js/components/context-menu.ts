@@ -6,7 +6,7 @@ import type {
 } from "electron/renderer";
 import process from "node:process";
 
-import {Menu} from "@electron/remote";
+import {Menu, remote} from "@electron/remote";
 
 import * as t from "../../../common/translation-util.js";
 
@@ -145,5 +145,5 @@ export const contextMenu = (
     (menuItem) => menuItem.visible ?? true,
   );
   const menu = Menu.buildFromTemplate(filteredMenuTemplate);
-  menu.popup();
+  menu.popup({window: remote.getCurrentWindow()});
 };
