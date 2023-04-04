@@ -3,11 +3,35 @@
     "noEmit": true,
     "target": "esnext",
     "module": "esnext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "skipLibCheck": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,
     "noImplicitOverride": true,
-    "types": ["vite/client"]
-  }
+    "types": ["vite/client"],
+//    "baseUrl": "./",
+    "paths": {
+      "electron/*": ["./app/electron-wrapper/*.ts"],
+      "@electron/remote": ["./app/electron-wrapper/main.ts"],
+      "@electron/remote/main": ["./app/electron-wrapper/main.ts"],
+      "@sentry/electron": ["./app/electron-wrapper/sentry.ts"],
+      "@sentry/electron/main": ["./app/electron-wrapper/sentry.ts"],
+      "electron-window-state": ["./app/electron-wrapper/window-state.ts"],
+      "events": ["./app/electron-wrapper/events.ts"],
+      "electron-log": ["./app/electron-wrapper/log.ts"],
+      "electron-updater": ["./app/electron-wrapper/updater.ts"],
+
+      "node:*": ["./app/node-wrapper/*.ts"],
+      "zulip:remote": ["./app/electron-wrapper/main.ts"],
+      "node-json-db": ["./app/node-wrapper/json-db.ts"],
+      "node-json-db/dist/lib/Errors": ["./app/node-wrapper/json-db.ts"],
+      "adm-zip": ["./app/node-wrapper/adm-zip.ts"],
+      "backoff": ["./app/node-wrapper/backoff.ts"],
+      "i18n": ["./app/node-wrapper/i18n.ts"],
+    },
+
+  },
+  "include": ["app"]
 }
